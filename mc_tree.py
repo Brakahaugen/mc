@@ -1,6 +1,8 @@
+from simWorld import SimWorld
+import time
+import copy
 import random
 import math
-from simWorld import SimWorld
 
 class Node:
     def __init__(self, state: dict, game: SimWorld, action: tuple = None):
@@ -80,7 +82,7 @@ class Node:
         if self.state["p"] == self.getRoot().state["p"]:
             best_val = 0
         else: 
-            best_val = 1
+            best_val = 999
 
         for c in self.children:
             if c.num_visits != 0:
@@ -152,3 +154,47 @@ class Node:
         self.num_wins += reward
         if self.parent is not None:
             self.parent.backpropagate(reward)
+
+
+
+
+class MC_Tree:
+    def __init__(self, root: Node):
+        self.root = root
+
+    def reset(self, node, hard_reset = True):
+        node.parent = None
+        self.root = node
+
+        if hard_reset:
+            node.num_visits = 0
+            node.num_wins = 0
+            node.untried_actions = node.getLegalActions()
+            node.children = []
+        else:
+            # swap all num_wins
+            self.swap_tree_wins(node)
+        return
+
+    def swap_tree_wins(self, node: Node):
+        """
+            Recursively swaps all win values of the tree
+        """
+        #Update step
+        node.num_wins = node.num_visits - node.num_wins
+        for c in node.children:
+            self.swap_tree_wins(c)
+
+
+    def select(self):
+        """
+        TREE SEARCH
+        Traversing the tree from the root to a leaf node by using the tree policy (ChooseBestChild).
+        """
+        node = self.root
+        while not node.isTerminal():
+            if not node.isFullyExpanded():
+                return node.expand()
+            else:
+                node = node.treePolicy()
+        return node
